@@ -2,11 +2,16 @@ package cmd
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
 
 func TestCLICommandsE2E(t *testing.T) {
+	if _, err := exec.LookPath("qemu-img"); err != nil {
+		t.Skip("qemu-img binary not found in PATH; skipping E2E CLI test")
+	}
+
 	tempHome := t.TempDir()
 	t.Setenv("STREAMER_HOME", tempHome)
 
@@ -69,6 +74,5 @@ func TestCLICommandsE2E(t *testing.T) {
 }
 
 func TestPrintHelp(t *testing.T) {
-	// Ensures PrintHelp executes without panic
 	PrintHelp()
 }

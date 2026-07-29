@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"streamer-vm/guest"
 )
 
 func TestBuildQEMUArgs(t *testing.T) {
@@ -29,14 +31,19 @@ func TestBuildQEMUArgs(t *testing.T) {
 	overlayDisk := GetOverlayDiskPath(tempHome, cfg.Name)
 	_ = os.WriteFile(overlayDisk, []byte("dummy-disk"), 0644)
 
+	// If OVMF paths are not installed on host, register dummy paths for test
+	_, _, err := guest.FindOVMFPaths()
+	if err != nil {
+		dummyCode := filepath.Join(tempHome, "OVMF_CODE_4M.fd")
+		dummyVars := filepath.Join(tempHome, "OVMF_VARS_4M.fd")
+		_ = os.WriteFile(dummyCode, []byte("dummy-code"), 0644)
+		_ = os.WriteFile(dummyVars, []byte("dummy-vars"), 0644)
+		guest.StandardOVMFPaths = append([]struct{ Code, Vars string }{{Code: dummyCode, Vars: dummyVars}}, guest.StandardOVMFPaths...)
+	}
+
 	args, err := BuildQEMUArgs(tempHome, cfg)
 	if err != nil {
 		t.Fatalf("BuildQEMUArgs failed: %v", err)
-	}
-
-	argStr := ""
-	for _, a := range args {
-		argStr += a + " "
 	}
 
 	if !contains(args, "-enable-kvm") {
