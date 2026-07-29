@@ -1,0 +1,9 @@
+# streamer-vm binary
+streamer-vm
+
+# Test and coverage artifacts
+*.out
+*.test
+
+# Local state
+.local/
