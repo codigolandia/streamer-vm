@@ -52,7 +52,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		"-spice", fmt.Sprintf("port=%d,disable-ticketing=on,addr=127.0.0.1", cfg.SpicePort),
 
 		"-device", "virtio-scsi-pci",
-		"-device", "scsi-hd,drive=disk",
+		"-device", "scsi-hd,drive=disk,bootindex=1",
 		"-drive", fmt.Sprintf("id=disk,if=none,file=%s,format=qcow2,cache=none,aio=native", overlayDisk),
 
 		"-device", "virtio-net-pci,netdev=net",
@@ -69,6 +69,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		"-monitor", fmt.Sprintf("unix:%s,server,nowait", monitorSock),
 		"-pidfile", pidFile,
 
+		"-boot", "menu=on",
 		"-no-reboot",
 		"-daemonize",
 		"-D", logFile,
@@ -76,7 +77,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 
 	if cfg.ISOPath != "" {
 		if _, err := os.Stat(cfg.ISOPath); err == nil {
-			args = append(args, "-device", "scsi-cd,drive=cdrom", "-drive", fmt.Sprintf("id=cdrom,if=none,file=%s,media=cdrom,readonly=on", cfg.ISOPath))
+			args = append(args, "-device", "scsi-cd,drive=cdrom,bootindex=0", "-drive", fmt.Sprintf("id=cdrom,if=none,file=%s,media=cdrom,readonly=on", cfg.ISOPath))
 		} else {
 			internal.Warn("ISO file %s specified but not found, booting without ISO", cfg.ISOPath)
 		}

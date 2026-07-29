@@ -3,6 +3,8 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"streamer-vm/internal"
@@ -20,12 +22,13 @@ func init() {
 
 func runStart(args []string) error {
 	fs := flag.NewFlagSet("start", flag.ContinueOnError)
+	isoFlag := fs.String("iso", "", "Path to guest OS installation ISO image")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
 	if fs.NArg() < 1 {
-		return fmt.Errorf("VM name argument is required: streamer-vm start <name>")
+		return fmt.Errorf("VM name argument is required: streamer-vm start <name> [-iso <path>]")
 	}
 
 	name := fs.Arg(0)
@@ -34,6 +37,18 @@ func runStart(args []string) error {
 	cfg, err := vm.LoadVMConfig(home, name)
 	if err != nil {
 		return err
+	}
+
+	if *isoFlag != "" {
+		absISO, err := filepath.Abs(*isoFlag)
+		if err == nil {
+			isoPath := absISO
+			if _, err := os.Stat(isoPath); err != nil {
+				internal.Warn("ISO file %s does not exist or is not readable", isoPath)
+			}
+			cfg.ISOPath = isoPath
+			_ = vm.SaveVMConfig(home, cfg)
+		}
 	}
 
 	if vm.IsVMRunning(home, name) {
