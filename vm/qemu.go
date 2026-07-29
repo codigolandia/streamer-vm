@@ -61,6 +61,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		"-device", "intel-hda",
 		"-device", "hda-output,audiodev=audio",
 
+		"-device", "virtio-serial-pci",
 		"-chardev", "spicevmc,id=vdagent,name=vdagent",
 		"-device", "virtserialport,chardev=vdagent,name=com.redhat.spice.0",
 
