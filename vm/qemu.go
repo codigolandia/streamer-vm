@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"os"
@@ -164,16 +163,13 @@ func StopVM(home string, cfg *VMConfig, timeout time.Duration) error {
 	sentACPI := false
 	conn, err := net.DialTimeout("unix", monitorSock, 2*time.Second)
 	if err == nil {
-		defer conn.Close()
-		reader := bufio.NewReader(conn)
-		// Read banner prompt
-		_, _ = reader.ReadString('>')
-		// Send system_powerdown
+		_ = conn.SetDeadline(time.Now().Add(2 * time.Second))
 		_, err = conn.Write([]byte("system_powerdown\n"))
 		if err == nil {
 			sentACPI = true
 			internal.Info("Sent ACPI powerdown command to VM '%s'", cfg.Name)
 		}
+		_ = conn.Close()
 	}
 
 	if !sentACPI {
