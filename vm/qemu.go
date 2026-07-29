@@ -39,7 +39,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 	args := []string{
 		"-enable-kvm",
 		"-machine", "q35,accel=kvm",
-		"-cpu", "host,kvm=on,vendor=GenuineIntel",
+		"-cpu", "host,kvm=on",
 		"-smp", fmt.Sprintf("%d,sockets=1,cores=%d,threads=1", cfg.CPUs, cfg.CPUs),
 		"-m", fmt.Sprintf("%dG", cfg.MemoryGB),
 

@@ -20,7 +20,7 @@ No host Linux:
 
 ## Instalação
 
-Baixe o binário pré-compilado para Linux (amd64 / arm64) das [Releases](https://github.com/ronoaldo/streamer-vm/releases) ou compile a partir do código fonte:
+Baixe o binário pré-compilado para Linux (amd64 / arm64) das [Releases](https://github.com/codigolandia/streamer-vm/releases) ou compile a partir do código fonte:
 
 ```bash
 go build -o streamer-vm .

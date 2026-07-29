@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"streamer-vm/internal"
 )
@@ -44,7 +46,7 @@ func (r *PrereqReport) PrintReport() {
 
 // CheckKVM verifies that /dev/kvm exists and is accessible.
 func CheckKVM() PrereqCheck {
-	info, err := os.Stat("/dev/kvm")
+	_, err := os.Stat("/dev/kvm")
 	if err != nil {
 		return PrereqCheck{
 			Name:    "KVM Acceleration",
@@ -53,8 +55,7 @@ func CheckKVM() PrereqCheck {
 			Details: "Ensure KVM module is loaded (modprobe kvm_amd or kvm_intel)",
 		}
 	}
-	_ = info
-	// Check read/write permission
+
 	f, err := os.OpenFile("/dev/kvm", os.O_RDWR, 0)
 	if err != nil {
 		return PrereqCheck{
@@ -74,16 +75,19 @@ func CheckKVM() PrereqCheck {
 
 // CheckGPU verifies GPU DRM render node accessibility for VirGL acceleration.
 func CheckGPU() PrereqCheck {
-	nodes := []string{"/dev/dri/renderD128", "/dev/dri/card0"}
-	for _, node := range nodes {
-		if _, err := os.Stat(node); err == nil {
-			f, err := os.OpenFile(node, os.O_RDWR, 0)
-			if err == nil {
-				f.Close()
-				return PrereqCheck{
-					Name:    "GPU DRM (VirGL)",
-					Passed:  true,
-					Message: fmt.Sprintf("DRM node %s accessible", node),
+	entries, err := os.ReadDir("/dev/dri")
+	if err == nil {
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "renderD") || strings.HasPrefix(entry.Name(), "card") {
+				node := filepath.Join("/dev/dri", entry.Name())
+				f, err := os.OpenFile(node, os.O_RDWR, 0)
+				if err == nil {
+					f.Close()
+					return PrereqCheck{
+						Name:    "GPU DRM (VirGL)",
+						Passed:  true,
+						Message: fmt.Sprintf("DRM node %s accessible", node),
+					}
 				}
 			}
 		}
@@ -177,7 +181,6 @@ func CheckOVMF() PrereqCheck {
 
 // CheckPipewire checks for Pipewire availability on host.
 func CheckPipewire() PrereqCheck {
-	// Check pipewire runtime socket or binary
 	if _, err := exec.LookPath("pipewire"); err == nil {
 		return PrereqCheck{
 			Name:    "Pipewire Audio",
