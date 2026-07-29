@@ -46,6 +46,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		"-drive", fmt.Sprintf("if=pflash,format=raw,readonly=on,file=%s", ovmfCode),
 		"-drive", fmt.Sprintf("if=pflash,format=raw,file=%s", ovfVars),
 
+		"-vga", "none",
 		"-device", "virtio-gpu-gl-pci",
 		"-display", "egl-headless",
 		"-spice", fmt.Sprintf("port=%d,disable-ticketing=on,addr=127.0.0.1", cfg.SpicePort),

@@ -49,6 +49,9 @@ func TestBuildQEMUArgs(t *testing.T) {
 	if !contains(args, "-enable-kvm") {
 		t.Errorf("Expected -enable-kvm in args")
 	}
+	if !contains(args, "-vga") {
+		t.Errorf("Expected -vga in args")
+	}
 	if !contains(args, "virtio-gpu-gl-pci") {
 		t.Errorf("Expected virtio-gpu-gl-pci in args")
 	}
