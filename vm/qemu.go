@@ -69,7 +69,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 
 		"-no-reboot",
 		"-daemonize",
-		"-logfile", logFile,
+		"-D", logFile,
 	}
 
 	if cfg.ISOPath != "" {
