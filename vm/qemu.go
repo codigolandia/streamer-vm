@@ -69,7 +69,6 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		"-pidfile", pidFile,
 
 		"-boot", "menu=on",
-		"-no-reboot",
 		"-daemonize",
 		"-D", logFile,
 	}
