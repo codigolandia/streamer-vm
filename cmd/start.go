@@ -51,10 +51,13 @@ func runStart(args []string) error {
 		}
 	}
 
+	spiceSock := vm.GetSpiceSocketPath(home, name)
+	spiceURL := vm.GetSpiceURL("127.0.0.1", cfg.SpicePort, spiceSock)
+
 	if vm.IsVMRunning(home, name) {
 		pid := vm.GetVMPID(home, name)
 		internal.Info("VM '%s' is already running (PID: %d)", name, pid)
-		internal.Info("Spice URL: %s", vm.GetSpiceURL("127.0.0.1", cfg.SpicePort))
+		internal.Info("Spice URL: %s", spiceURL)
 		return nil
 	}
 
@@ -63,15 +66,14 @@ func runStart(args []string) error {
 		return err
 	}
 
-	internal.Info("Waiting for Spice server on port %d to become ready...", cfg.SpicePort)
-	if vm.WaitUntilSpiceReady("127.0.0.1", cfg.SpicePort, 15*time.Second) {
-		spiceURL := vm.GetSpiceURL("127.0.0.1", cfg.SpicePort)
+	internal.Info("Waiting for Spice server to become ready...")
+	if vm.WaitUntilSpiceReady(spiceSock, "127.0.0.1", cfg.SpicePort, 15*time.Second) {
 		internal.Success("VM '%s' started successfully!", name)
 		internal.Success("Spice URL: %s", spiceURL)
-		internal.Info("Connect using spice-client-gtk (or spicy) or open window capture in OBS Studio.")
+		internal.Info("Connect using: spicy --uri=%s (or virt-viewer)", spiceURL)
 	} else {
 		pid := vm.GetVMPID(home, name)
-		internal.Warn("QEMU started (PID %d), but Spice server port %d did not respond within timeout.", pid, cfg.SpicePort)
+		internal.Warn("QEMU started (PID %d), but Spice server did not respond within timeout.", pid)
 		internal.Info("Check log file at: %s", vm.GetLogFilePath(home, name))
 	}
 

@@ -11,7 +11,7 @@ func init() {
 	RegisterCommand(&Command{
 		Name:  "spice-url",
 		Short: "Print the SPICE connection URL for a VM",
-		Long:  "Outputs the spice:// URL (e.g. spice://127.0.0.1:5900) for connecting via GTK client or virt-viewer.",
+		Long:  "Outputs the SPICE URL (e.g. spice+unix:///path/to/socket) for connecting via GTK client or virt-viewer.",
 		Run:   runSpiceURL,
 	})
 }
@@ -34,7 +34,8 @@ func runSpiceURL(args []string) error {
 		return err
 	}
 
-	spiceURL := vm.GetSpiceURL("127.0.0.1", cfg.SpicePort)
+	spiceSock := vm.GetSpiceSocketPath(home, name)
+	spiceURL := vm.GetSpiceURL("127.0.0.1", cfg.SpicePort, spiceSock)
 	fmt.Println(spiceURL)
 	return nil
 }

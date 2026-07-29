@@ -34,6 +34,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 	logFile := GetLogFilePath(home, cfg.Name)
 	pidFile := GetPIDFilePath(home, cfg.Name)
 	monitorSock := GetMonitorSocketPath(home, cfg.Name)
+	spiceSock := GetSpiceSocketPath(home, cfg.Name)
 
 	args := []string{
 		"-enable-kvm",
@@ -47,8 +48,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 
 		"-vga", "none",
 		"-device", "virtio-gpu-gl-pci",
-		"-display", "egl-headless",
-		"-spice", fmt.Sprintf("port=%d,disable-ticketing=on,addr=127.0.0.1", cfg.SpicePort),
+		"-spice", fmt.Sprintf("unix=on,addr=%s,disable-ticketing=on,gl=on", spiceSock),
 
 		"-device", "virtio-scsi-pci",
 		"-device", "scsi-hd,drive=disk,bootindex=1",
@@ -116,8 +116,9 @@ func StartVM(home string, cfg *VMConfig) error {
 		return fmt.Errorf("VM '%s' is already running (PID: %d)", cfg.Name, GetVMPID(home, cfg.Name))
 	}
 
-	// Remove stale monitor socket or pidfile if present
+	// Remove stale monitor socket, spice socket or pidfile if present
 	_ = os.Remove(GetMonitorSocketPath(home, cfg.Name))
+	_ = os.Remove(GetSpiceSocketPath(home, cfg.Name))
 	_ = os.Remove(GetPIDFilePath(home, cfg.Name))
 
 	args, err := BuildQEMUArgs(home, cfg)
@@ -152,6 +153,7 @@ func StopVM(home string, cfg *VMConfig, timeout time.Duration) error {
 		_ = SaveVMConfig(home, cfg)
 		_ = os.Remove(GetPIDFilePath(home, cfg.Name))
 		_ = os.Remove(GetMonitorSocketPath(home, cfg.Name))
+		_ = os.Remove(GetSpiceSocketPath(home, cfg.Name))
 		return nil
 	}
 
@@ -196,6 +198,7 @@ func StopVM(home string, cfg *VMConfig, timeout time.Duration) error {
 	// Cleanup state
 	_ = os.Remove(GetPIDFilePath(home, cfg.Name))
 	_ = os.Remove(GetMonitorSocketPath(home, cfg.Name))
+	_ = os.Remove(GetSpiceSocketPath(home, cfg.Name))
 
 	cfg.State = "stopped"
 	_ = SaveVMConfig(home, cfg)

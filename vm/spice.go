@@ -32,25 +32,34 @@ func AllocateFreeSpicePort(startPort, endPort int) (int, error) {
 	return 0, fmt.Errorf("no free Spice ports available in range %d-%d", startPort, endPort)
 }
 
-// IsSpicePortListening checks if a connection can be established to the Spice server.
-func IsSpicePortListening(host string, port int, timeout time.Duration) bool {
-	if host == "" {
-		host = "127.0.0.1"
+// IsSpiceReady checks if a connection can be established to the Spice Unix socket or TCP server.
+func IsSpiceReady(socketPath string, host string, port int, timeout time.Duration) bool {
+	if socketPath != "" {
+		conn, err := net.DialTimeout("unix", socketPath, timeout)
+		if err == nil {
+			conn.Close()
+			return true
+		}
 	}
-	addr := fmt.Sprintf("%s:%d", host, port)
-	conn, err := net.DialTimeout("tcp", addr, timeout)
-	if err != nil {
-		return false
+	if port > 0 {
+		if host == "" {
+			host = "127.0.0.1"
+		}
+		addr := fmt.Sprintf("%s:%d", host, port)
+		conn, err := net.DialTimeout("tcp", addr, timeout)
+		if err == nil {
+			conn.Close()
+			return true
+		}
 	}
-	conn.Close()
-	return true
+	return false
 }
 
-// WaitUntilSpiceReady polls the Spice server until it is listening or maxWait duration passes.
-func WaitUntilSpiceReady(host string, port int, maxWait time.Duration) bool {
+// WaitUntilSpiceReady polls the Spice Unix socket or TCP server until ready or maxWait duration passes.
+func WaitUntilSpiceReady(socketPath string, host string, port int, maxWait time.Duration) bool {
 	deadline := time.Now().Add(maxWait)
 	for time.Now().Before(deadline) {
-		if IsSpicePortListening(host, port, 500*time.Millisecond) {
+		if IsSpiceReady(socketPath, host, port, 500*time.Millisecond) {
 			return true
 		}
 		time.Sleep(300 * time.Millisecond)
@@ -58,8 +67,11 @@ func WaitUntilSpiceReady(host string, port int, maxWait time.Duration) bool {
 	return false
 }
 
-// GetSpiceURL returns the formatted Spice URL.
-func GetSpiceURL(host string, port int) string {
+// GetSpiceURL returns the formatted Spice URL (preferring Unix socket if available).
+func GetSpiceURL(host string, port int, socketPath string) string {
+	if socketPath != "" {
+		return fmt.Sprintf("spice+unix://%s", socketPath)
+	}
 	if host == "" {
 		host = "127.0.0.1"
 	}

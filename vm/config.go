@@ -78,6 +78,10 @@ func GetSpicePortFilePath(home, name string) string {
 	return filepath.Join(home, "state", fmt.Sprintf("%s.spice-port", name))
 }
 
+func GetSpiceSocketPath(home, name string) string {
+	return filepath.Join(home, "state", fmt.Sprintf("%s.spice.sock", name))
+}
+
 func GetMonitorSocketPath(home, name string) string {
 	return filepath.Join(home, "state", fmt.Sprintf("%s.monitor", name))
 }

@@ -40,14 +40,16 @@ func runStatus(args []string) error {
 			pidStr = fmt.Sprintf("%d", vm.GetVMPID(home, name))
 		}
 
+		spiceSock := vm.GetSpiceSocketPath(home, name)
+		spiceURL := vm.GetSpiceURL("127.0.0.1", cfg.SpicePort, spiceSock)
+
 		internal.Info("=== VM Status: %s ===", cfg.Name)
 		fmt.Printf("State:      %s\n", stateStr)
 		fmt.Printf("PID:        %s\n", pidStr)
 		fmt.Printf("CPUs:       %d\n", cfg.CPUs)
 		fmt.Printf("Memory:     %d GB\n", cfg.MemoryGB)
 		fmt.Printf("Disk:       %d GB\n", cfg.DiskGB)
-		fmt.Printf("Spice Port: %d\n", cfg.SpicePort)
-		fmt.Printf("Spice URL:  %s\n", vm.GetSpiceURL("127.0.0.1", cfg.SpicePort))
+		fmt.Printf("Spice URL:  %s\n", spiceURL)
 		if cfg.ISOPath != "" {
 			fmt.Printf("ISO:        %s\n", cfg.ISOPath)
 		}
@@ -73,8 +75,8 @@ func runStatus(args []string) error {
 		if running {
 			stateStr = fmt.Sprintf("RUNNING (PID: %d)", vm.GetVMPID(home, cfg.Name))
 		}
-		fmt.Printf("- %-15s | State: %-18s | Spice: %d | CPUs: %d | RAM: %dGB | Disk: %dGB\n",
-			cfg.Name, stateStr, cfg.SpicePort, cfg.CPUs, cfg.MemoryGB, cfg.DiskGB)
+		fmt.Printf("- %-15s | State: %-18s | CPUs: %d | RAM: %dGB | Disk: %dGB\n",
+			cfg.Name, stateStr, cfg.CPUs, cfg.MemoryGB, cfg.DiskGB)
 	}
 
 	return nil
