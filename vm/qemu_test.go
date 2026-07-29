@@ -49,8 +49,11 @@ func TestBuildQEMUArgs(t *testing.T) {
 	if !contains(args, "-enable-kvm") {
 		t.Errorf("Expected -enable-kvm in args")
 	}
-	if !contains(args, "spice-app,gl=on") {
-		t.Errorf("Expected spice-app,gl=on in args")
+	if !contains(args, "virtio-gpu-gl-pci") {
+		t.Errorf("Expected virtio-gpu-gl-pci in args")
+	}
+	if !contains(args, "egl-headless") {
+		t.Errorf("Expected egl-headless in args")
 	}
 	if !contains(args, "port=5900,disable-ticketing=on,addr=127.0.0.1") {
 		t.Errorf("Expected spice port config in args")

@@ -46,8 +46,8 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		"-drive", fmt.Sprintf("if=pflash,format=raw,readonly=on,file=%s", ovmfCode),
 		"-drive", fmt.Sprintf("if=pflash,format=raw,file=%s", ovfVars),
 
-		"-device", "virtio-gpu-gl-device,virgl=on,gl=on",
-		"-display", "spice-app,gl=on",
+		"-device", "virtio-gpu-gl-pci",
+		"-display", "egl-headless",
 		"-spice", fmt.Sprintf("port=%d,disable-ticketing=on,addr=127.0.0.1", cfg.SpicePort),
 
 		"-device", "virtio-scsi-pci",
@@ -127,7 +127,14 @@ func StartVM(home string, cfg *VMConfig) error {
 	cmd := exec.Command("qemu-system-x86_64", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("QEMU launch failed: %w (output: %s)", err, string(output))
+		outStr := strings.TrimSpace(string(output))
+		if outStr == "" {
+			logData, logErr := os.ReadFile(GetLogFilePath(home, cfg.Name))
+			if logErr == nil && len(logData) > 0 {
+				outStr = strings.TrimSpace(string(logData))
+			}
+		}
+		return fmt.Errorf("QEMU launch failed: %w (output: %s)", err, outStr)
 	}
 
 	// Update state in config
