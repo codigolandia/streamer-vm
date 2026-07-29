@@ -52,7 +52,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 
 		"-device", "virtio-scsi-pci",
 		"-device", "scsi-hd,drive=disk",
-		"-drive", fmt.Sprintf("id=disk,file=%s,format=qcow2,cache=none,aio=native", overlayDisk),
+		"-drive", fmt.Sprintf("id=disk,if=none,file=%s,format=qcow2,cache=none,aio=native", overlayDisk),
 
 		"-device", "virtio-net-pci,netdev=net",
 		"-netdev", "user,id=net",
@@ -74,7 +74,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 
 	if cfg.ISOPath != "" {
 		if _, err := os.Stat(cfg.ISOPath); err == nil {
-			args = append(args, "-drive", fmt.Sprintf("id=cdrom,file=%s,media=cdrom,readonly=on", cfg.ISOPath))
+			args = append(args, "-device", "scsi-cd,drive=cdrom", "-drive", fmt.Sprintf("id=cdrom,if=none,file=%s,media=cdrom,readonly=on", cfg.ISOPath))
 		} else {
 			internal.Warn("ISO file %s specified but not found, booting without ISO", cfg.ISOPath)
 		}
