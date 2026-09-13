@@ -82,4 +82,10 @@ func TestPathHelpers(t *testing.T) {
 	if GetPIDFilePath(home, "myvm") != filepath.Join(home, "state", "myvm.pid") {
 		t.Errorf("Unexpected PIDFilePath")
 	}
+	if GetBaseOVMFVarsPath(home, "myvm") != filepath.Join(home, "configs", "myvm", "ovf-vars.base.fd") {
+		t.Errorf("Unexpected BaseOVMFVarsPath")
+	}
+	if OverlayExists(home, "myvm") {
+		t.Errorf("OverlayExists returned true for non-existent overlay")
+	}
 }

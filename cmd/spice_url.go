@@ -9,10 +9,12 @@ import (
 
 func init() {
 	RegisterCommand(&Command{
-		Name:  "spice-url",
-		Short: "Print the SPICE connection URL for a VM",
-		Long:  "Outputs the SPICE URL (e.g. spice+unix:///path/to/socket) for connecting via GTK client or virt-viewer.",
-		Run:   runSpiceURL,
+		Name:     "spice-url",
+		ShortKey: "cmd.spice_url.short",
+		LongKey:  "cmd.spice_url.long",
+		Short:    "Print the SPICE connection URL for a VM",
+		Long:     "Displays the spice:// or spice+unix:// connection URI to connect using spicy or virt-viewer.",
+		Run:      runSpiceURL,
 	})
 }
 

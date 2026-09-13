@@ -9,15 +9,18 @@ import (
 
 	"streamer-vm/guest"
 	"streamer-vm/internal"
+	"streamer-vm/internal/i18n"
 	"streamer-vm/vm"
 )
 
 func init() {
 	RegisterCommand(&Command{
-		Name:  "create",
-		Short: "Create a new virtual machine configuration and disk images",
-		Long:  "Creates base and overlay qcow2 disks, prepares UEFI OVMF variables, and generates vm.json configuration.",
-		Run:   runCreate,
+		Name:     "create",
+		ShortKey: "cmd.create.short",
+		LongKey:  "cmd.create.long",
+		Short:    "Create a new virtual machine configuration and disk images",
+		Long:     "Creates base qcow2 disk, prepares UEFI OVMF variables, and generates vm.json configuration.",
+		Run:      runCreate,
 	})
 }
 
@@ -73,21 +76,12 @@ func runCreate(args []string) error {
 		}
 	}
 
-	internal.Info("Creating VM '%s' (CPUs: %d, Memory: %dGB, Disk: %dGB, Spice Port: %d)",
-		name, *cpus, *memory, *disk, port)
+	internal.Info(i18n.T("msg.creating_vm", name, *cpus, *memory, *disk, port))
 
-	// Create base disk
+	// Create base disk (overlay will be created on first commit)
 	baseDisk := vm.GetBaseDiskPath(home, name)
-	internal.Info("Creating base qcow2 disk at %s (%dGB)...", baseDisk, *disk)
+	internal.Info(i18n.T("msg.creating_base_disk", baseDisk, *disk))
 	if err := vm.CreateBaseDisk(baseDisk, *disk); err != nil {
-		return err
-	}
-
-	// Create overlay disk
-	overlayDisk := vm.GetOverlayDiskPath(home, name)
-	internal.Info("Creating overlay qcow2 disk at %s...", overlayDisk)
-	if err := vm.CreateOverlayDisk(baseDisk, overlayDisk); err != nil {
-		_ = os.Remove(baseDisk)
 		return err
 	}
 
@@ -104,7 +98,6 @@ func runCreate(args []string) error {
 		_, sysVars, err := guest.FindOVMFPaths()
 		if err != nil {
 			_ = os.Remove(baseDisk)
-			_ = os.Remove(overlayDisk)
 			return fmt.Errorf("OVMF vars template not found: %w", err)
 		}
 		varsSrc = sysVars
@@ -112,7 +105,6 @@ func runCreate(args []string) error {
 
 	if err := vm.CopyFile(varsSrc, ovfVarsDst); err != nil {
 		_ = os.Remove(baseDisk)
-		_ = os.Remove(overlayDisk)
 		return fmt.Errorf("failed to copy OVMF vars template: %w", err)
 	}
 
@@ -136,8 +128,11 @@ func runCreate(args []string) error {
 		return err
 	}
 
-	internal.Success("VM '%s' created successfully!", name)
-	internal.Info("Start VM using: streamer-vm start %s", name)
+	internal.Success(i18n.T("msg.vm_created", name))
+	internal.Info(i18n.T("msg.start_hint", name))
+	if isoPath != "" {
+		internal.Info(i18n.T("msg.commit_hint", name))
+	}
 
 	return nil
 }

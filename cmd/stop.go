@@ -6,15 +6,18 @@ import (
 	"time"
 
 	"streamer-vm/internal"
+	"streamer-vm/internal/i18n"
 	"streamer-vm/vm"
 )
 
 func init() {
 	RegisterCommand(&Command{
-		Name:  "stop",
-		Short: "Stop a running virtual machine",
-		Long:  "Sends an ACPI shutdown signal to QEMU via monitor socket and waits for a graceful shutdown.",
-		Run:   runStop,
+		Name:     "stop",
+		ShortKey: "cmd.stop.short",
+		LongKey:  "cmd.stop.long",
+		Short:    "Stop a running virtual machine",
+		Long:     "Gracefully requests ACPI shutdown via QEMU monitor socket, falling back to SIGTERM/SIGKILL if necessary.",
+		Run:      runStop,
 	})
 }
 
@@ -39,18 +42,18 @@ func runStop(args []string) error {
 	}
 
 	if !vm.IsVMRunning(home, name) {
-		internal.Info("VM '%s' is not running", name)
+		internal.Info(i18n.T("msg.vm_not_running", name))
 		cfg.State = "stopped"
 		_ = vm.SaveVMConfig(home, cfg)
 		return nil
 	}
 
-	internal.Info("Stopping VM '%s' (timeout: %ds)...", name, *stopTimeout)
+	internal.Info(i18n.T("msg.stopping_vm", name))
 	timeout := time.Duration(*stopTimeout) * time.Second
 	if err := vm.StopVM(home, cfg, timeout); err != nil {
 		return err
 	}
 
-	internal.Success("VM '%s' stopped successfully.", name)
+	internal.Success(i18n.T("msg.vm_stopped", name))
 	return nil
 }

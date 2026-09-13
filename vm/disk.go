@@ -52,6 +52,16 @@ func RemoveOverlayDisk(overlayPath string) error {
 	return nil
 }
 
+// CommitOverlayDisk commits changes from the overlay image back into its base backing file.
+func CommitOverlayDisk(overlayPath string) error {
+	cmd := exec.Command("qemu-img", "commit", overlayPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("qemu-img commit failed: %w (output: %s)", err, string(output))
+	}
+	return nil
+}
+
 // CopyFile copies a file from src to dst.
 func CopyFile(src, dst string) error {
 	in, err := os.Open(src)

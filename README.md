@@ -1,56 +1,66 @@
 # streamer-vm
 
-`streamer-vm` é uma ferramenta CLI em Pure Go projetada para gerenciar máquinas virtuais QEMU+KVM com aceleração gráfica VirGL (OpenGL pass-through), exibição SPICE e integração nativa para gravação e transmissão via OBS Studio no Linux.
+*[English](README.md) | [Português](README.pt-br.md)*
 
-## Recursos
+`streamer-vm` is a Pure Go CLI tool designed to manage QEMU+KVM virtual machines with VirGL GPU acceleration (OpenGL pass-through), SPICE display, and native integration for OBS Studio recording and live streaming on Linux.
 
-- **VirGL GPU Acceleration**: Aceleração OpenGL nativa via GPU do host (ex: AMD Radeon / Intel / NVIDIA via DRM scanout).
-- **Zero Dependências Externas**: Binário compilado em Pure Go usando apenas a biblioteca padrão.
-- **Isolamento via Qcow2 Overlay**: Mantém o disco base intacto e utiliza overlays COW graváveis para fácil reset.
-- **Protocolo SPICE**: Suporte a áudio Pipewire, clipboard bidirecional (vdagent) e baixa latência.
-- **Suporte a Linux**: Otimizado e voltado exclusivamente para sistemas Linux com Wayland/X11 e QEMU/KVM.
+## Features
 
-## Pré-requisitos
+- **VirGL GPU Acceleration**: Native hardware OpenGL acceleration via the host GPU (e.g., AMD Radeon / Intel / NVIDIA through DRM scanout).
+- **Zero External Dependencies**: Standalone single binary compiled in Pure Go using only the standard library.
+- **Internationalization (i18n)**: Native English (`en`) and Portuguese (`pt`) language support with automatic locale detection or via the `--lang` flag.
+- **Qcow2 Overlay Isolation**: Keeps the base disk image intact and uses writable COW overlays for easy and instantaneous `reset`.
+- **SPICE Protocol**: Low-latency display, Pipewire audio passthrough, and bidirectional clipboard sharing (`vdagent`).
+- **Tailored for Linux**: Optimized exclusively for Linux desktop systems with Wayland/X11 and QEMU/KVM.
 
-No host Linux:
-- `QEMU` (com suporte a KVM e VirGL)
+## Prerequisites
+
+On Linux host:
+- `QEMU` (with KVM and VirGL support: `qemu-system-x86_64`)
 - `qemu-img`
-- Firmware UEFI `OVMF` (`OVMF_CODE_4M.fd` e `OVMF_VARS_4M.fd`)
-- Opcional: `spice-client-gtk` (`spicy` ou `virt-viewer`) para exibição direta da VM em janela desktop
+- UEFI `OVMF` firmware (`OVMF_CODE_4M.fd` and `OVMF_VARS_4M.fd`)
+- Optional: `spice-client-gtk` (`spicy` or `virt-viewer`) for direct desktop window VM display
 
-## Instalação
+## Installation
 
-Baixe o binário pré-compilado para Linux (amd64 / arm64) das [Releases](https://github.com/codigolandia/streamer-vm/releases) ou compile a partir do código fonte:
+Download the pre-compiled binary for Linux (amd64 / arm64) from [Releases](https://github.com/codigolandia/streamer-vm/releases) or build from source:
 
 ```bash
 go build -o streamer-vm .
 ```
 
-## Uso Rápido
+## Quick Start
 
 ```bash
-# 1. Inicializar diretórios e verificar pré-requisitos do sistema
+# 1. Initialize environment directories and verify host prerequisites
 streamer-vm init
 
-# 2. Criar uma nova VM
+# 2. Create a new VM with an installation ISO (initial setup mode, writing directly to base disk)
 streamer-vm create ubuntu-live -cpus 4 -memory 8 -disk 50 -iso ~/Downloads/ubuntu-24.04.iso
 
-# 3. Iniciar a VM
+# 3. Start VM to install the guest OS via SPICE display client
 streamer-vm start ubuntu-live
 
-# 4. Exibir URL de conexão SPICE
+# 4. View SPICE connection URL (if using spicy or virt-viewer separately)
 streamer-vm spice-url ubuntu-live
 
-# 5. Consultar status
-streamer-vm status ubuntu-live
-
-# 6. Desligar a VM graciosamente (ACPI)
+# 5. After OS installation is complete, gracefully shut down the VM (or power off from guest OS)
 streamer-vm stop ubuntu-live
 
-# 7. Resetar disco overlay para o estado limpo inicial
+# 6. Commit the installed OS as golden base image, detach ISO, and activate COW overlay
+streamer-vm commit ubuntu-live --remove-iso
+
+# 7. Start the VM again (now running on a COW overlay on top of the base image)
+streamer-vm start ubuntu-live
+
+# 8. Reset overlay disk back to clean state from last commit (discard all experimental changes)
 streamer-vm reset ubuntu-live
+
+# Tips:
+# - Use 'streamer-vm update <name> --iso <path>' or '--remove-iso' to manage ISO media anytime.
+# - Use '--lang=en' or '--lang=pt' (or set STREAMER_LANG) to switch interface language.
 ```
 
-## Licença
+## License
 
-MIT License. Veja [LICENSE](LICENSE) para mais detalhes.
+MIT License. See [LICENSE](LICENSE) for details.

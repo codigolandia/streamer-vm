@@ -218,24 +218,26 @@ qemu-system-x86_64 \
 
 ```bash
 streamer-vm init                    # Cria estrutura de dirs, verifica prereqs
-streamer-vm create <name> [flags]   # Cria disco + config
-streamer-vm start <name>            # Inicia QEMU, espera Spice pronto
+streamer-vm create <name> [flags]   # Cria disco base + config (sem overlay inicial)
+streamer-vm start <name> [flags]    # Inicia QEMU, espera Spice pronto
 streamer-vm stop <name>             # Shutdown gracioso (ACPI) + cleanup
-streamer-vm status [name]           # Estado de VMs
+streamer-vm update <name> [flags]   # Atualiza config (anexa ou remove ISO)
+streamer-vm commit <name> [flags]   # Consolida base image e ativa/renova overlay
+streamer-vm reset <name>            # Recria overlay limpo (volta ao último commit)
+streamer-vm status [name]           # Estado de VMs e modo de disco
 streamer-vm list                    # Lista todas
 streamer-vm delete <name>           # Remove VM
-streamer-vm reset <name>            # Recria overlay limpo (reseta disco)
 streamer-vm spice-url <name>        # Imprime spice://host:port para copiar
 ```
 
 **Flags de `create`:**
 ```
-  --cpus N        vCPUs (default: 4)
-  --memory N      RAM em GB (default: 8)
-  --disk N        Disco em GB (default: 50)
-  --iso <path>    ISO do SO convidado
-  --spice-port N  Porta Spice (default: auto 5900+)
-  --name <name>   Nome da VM
+  -cpus N        vCPUs (default: 4)
+  -memory N      RAM em GB (default: 8)
+  -disk N        Disco em GB (default: 50)
+  -iso <path>    ISO do SO convidado
+  -spice-port N  Porta Spice (default: auto 5900+)
+  -name <name>   Nome da VM
 ```
 
 ---
@@ -250,34 +252,44 @@ streamer-vm spice-url <name>        # Imprime spice://host:port para copiar
 ### `create <name>`
 1. Lê flags, gera `vm.json`
 2. Aloca porta Spice livre (poll 5900-5999)
-3. Cria disco base: `qemu-img create -f qcow2 disks/<name>.qcow2 <size>G`
-4. Cria overlay: `qemu-img create -f qcow2 -b disks/<name>.qcow2 disks/<name>-overlay.qcow2`
-5. Copia `OVMF_VARS.fd` para `configs/<name>/ovf-vars.fd`
-6. Salva porta em `state/<name>.spice-port`
+3. Cria disco base: `qemu-img create -f qcow2 disks/<name>.qcow2 <size>G` (sem overlay inicial)
+4. Copia `OVMF_VARS.fd` para `configs/<name>/ovf-vars.fd`
+5. Salva porta em `state/<name>.spice-port`
 
 ### `start <name>`
 1. Lê `vm.json`
-2. Constrói args do QEMU
-3. Lansa QEMU em daemon mode
+2. Constrói args do QEMU (usa overlay se já existir, senão usa o disco base diretamente)
+3. Lança QEMU em daemon mode
 4. Salva PID em `state/<name>.pid`
-5. Poll até Spice socket estar escutando (`net.DialTimeout("tcp", "127.0.0.1:port", 1s)`)
-6. Imprime: `spice://127.0.0.1:<port>` + instrução para abrir no spice-client-gtk
+5. Poll até Spice socket estar escutando
+6. Imprime: Spice URL + instrução para abrir no cliente Spice
 
 ### `stop <name>`
-1. Envia ACPI shutdown via QEMU monitor (nc localhost monitor_port)
+1. Envia ACPI shutdown via QEMU monitor
 2. Se não responder em 30s → `kill -SIGTERM` no PID
 3. Aguarda processo terminar (poll com timeout)
 4. Limpa PID files
 
+### `update <name>`
+1. Permite anexar ISO (`-iso <path>`) ou remover ISO (`-remove-iso`)
+2. Salva a nova configuração no `vm.json`
+
+### `commit <name>`
+1. Para a VM se estiver rodando
+2. Se overlay já existir: executa `qemu-img commit disks/<name>-overlay.qcow2` e recria overlay limpo
+3. Se overlay não existir (primeiro commit): cria o primeiro `disks/<name>-overlay.qcow2` sobre o disco base
+4. Faz backup de `configs/<name>/ovf-vars.fd` para `ovf-vars.base.fd`
+5. Se `-remove-iso` for passado, remove a ISO da configuração
+
 ### `reset <name>`
-1. Para VM se estiver rodando
-2. Deleta overlay: `qemu-img destroy disks/<name>-overlay.qcow2`
-3. Recria overlay limpo sobre disco base
-4. Limpa state
+1. Para a VM se estiver rodando
+2. Valida se o overlay existe (retorna erro se a VM ainda não foi commitada)
+3. Deleta o overlay atual e recria overlay limpo sobre a imagem base consolidada
+4. Restaura `ovf-vars.base.fd` para `ovf-vars.fd` (se existir)
 
 ### `status [name]`
-1. Se name fornecido: lê PID, verifica se processo existe, mostra info de `vm.json`
-2. Se não: lista todas VMs com status (running/stopped/deleted)
+1. Se name fornecido: lê PID, verifica processo, exibe hardware, ISO e modo de disco (Overlay vs Direct Base)
+2. Se não: lista todas VMs com status resumido
 
 ---
 
@@ -286,11 +298,12 @@ streamer-vm spice-url <name>        # Imprime spice://host:port para copiar
 O script **não** instala o SO no guest. Fluxo:
 
 1. Usuário baixa ISO (Ubuntu Desktop, Debian com GNOME, etc.)
-2. `streamer-vm create ubuntu-live --iso ~/Downloads/ubuntu-24.04.iso`
-3. `streamer-vm start ubuntu-live` — boot da ISO via janela spice
+2. `streamer-vm create ubuntu-live -iso ~/Downloads/ubuntu-24.04.iso`
+3. `streamer-vm start ubuntu-live` — boot da ISO via janela spice (gravação direta no disco base)
 4. Instala SO na janela spice-client-gtk
-5. Reboot (disco overlay persiste instalação)
-6. `streamer-vm stop ubuntu-live && streamer-vm start ubuntu-live` — boot do SO instalado
+5. `streamer-vm stop ubuntu-live` — desliga a VM
+6. `streamer-vm commit ubuntu-live --remove-iso` — consolida disco base, gera overlay e remove live ISO
+7. `streamer-vm start ubuntu-live` — boot do SO instalado em overlay COW
 
 **Guest recomendado:** Ubuntu Desktop ou Debian com GNOME (virgl funciona out-of-the-box).
 
@@ -304,16 +317,18 @@ O script **não** instala o SO no guest. Fluxo:
 
 ```
 streamer-vm/
-├── main.go              # CLI entry point (cobra/pflag)
+├── main.go              # CLI entry point (standard lib)
 ├── cmd/
 │   ├── init.go          # "init" command
 │   ├── create.go        # "create" command
 │   ├── start.go         # "start" command
 │   ├── stop.go          # "stop" command
+│   ├── update.go        # "update" command (attach/remove ISO)
+│   ├── commit.go        # "commit" command (base image consolidation)
+│   ├── reset.go         # "reset" command
 │   ├── status.go        # "status" command
 │   ├── list.go          # "list" command
 │   ├── delete.go        # "delete" command
-│   ├── reset.go         # "reset" command
 │   └── spice_url.go     # "spice-url" command
 ├── vm/
 │   ├── config.go        # vm.json parsing/serialization
@@ -393,22 +408,25 @@ streamer-vm/
 # 1. Setup inicial
 streamer-vm init
 
-# 2. Criar VM Ubuntu Desktop
-streamer-vm create ubuntu-live --cpus 6 --memory 12 --disk 80 --iso ~/Downloads/ubuntu-24.04.iso
+# 2. Criar VM Ubuntu Desktop (modo setup inicial, gravando direto no disco base)
+streamer-vm create ubuntu-live -cpus 6 -memory 12 -disk 80 -iso ~/Downloads/ubuntu-24.04.iso
 
 # 3. Iniciar — abre janela spice para instalar o SO
 streamer-vm start ubuntu-live
 
 # 4. Instalar Ubuntu na janela spice-client-gtk
 
-# 5. Após instalação, parar e reiniciar (disco persiste)
+# 5. Após instalação, parar e consolidar como base image
 streamer-vm stop ubuntu-live
+streamer-vm commit ubuntu-live --remove-iso
+
+# 6. Iniciar novamente (agora em overlay COW sobre a base instalada)
 streamer-vm start ubuntu-live
 
-# 6. No OBS: Window Capture (Wayland) → janela spice-client-gtk
+# 7. No OBS: Window Capture (Wayland) → janela spice-client-gtk
 #    → Gravar ou streamar normalmente
 
-# 7. Reset do disco (se necessário)
+# 8. Reset do disco (volta ao estado pós-instalação ou do último commit)
 streamer-vm reset ubuntu-live
 ```
 

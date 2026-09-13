@@ -38,8 +38,44 @@ func TestCLICommandsE2E(t *testing.T) {
 	}
 
 	overlayDiskPath := filepath.Join(tempHome, "disks", "e2e-vm-overlay.qcow2")
+	if _, err := os.Stat(overlayDiskPath); !os.IsNotExist(err) {
+		t.Fatalf("Overlay disk should NOT exist before commit")
+	}
+
+	// Test update command: attach ISO
+	fakeISO := filepath.Join(tempHome, "test.iso")
+	_ = os.WriteFile(fakeISO, []byte("iso-data"), 0644)
+	if err := runUpdate([]string{"-iso", fakeISO, "e2e-vm"}); err != nil {
+		t.Fatalf("update command failed to attach ISO: %v", err)
+	}
+
+	// Test update command: remove ISO
+	if err := runUpdate([]string{"-remove-iso", "e2e-vm"}); err != nil {
+		t.Fatalf("update command failed to remove ISO: %v", err)
+	}
+
+	// Test reset before commit (should fail because no overlay exists)
+	if err := runReset([]string{"e2e-vm"}); err == nil {
+		t.Fatalf("reset command should have failed before initial commit")
+	}
+
+	// Test commit command (initial commit: creates overlay and backups UEFI vars)
+	if err := runCommit([]string{"e2e-vm"}); err != nil {
+		t.Fatalf("commit command failed: %v", err)
+	}
+
 	if _, err := os.Stat(overlayDiskPath); err != nil {
-		t.Fatalf("Overlay disk missing at %s: %v", overlayDiskPath, err)
+		t.Fatalf("Overlay disk missing after commit: %v", err)
+	}
+
+	baseVarsPath := filepath.Join(tempHome, "configs", "e2e-vm", "ovf-vars.base.fd")
+	if _, err := os.Stat(baseVarsPath); err != nil {
+		t.Fatalf("Base OVMF vars missing after commit: %v", err)
+	}
+
+	// Test subsequent commit with -remove-iso
+	if err := runCommit([]string{"-remove-iso", "e2e-vm"}); err != nil {
+		t.Fatalf("subsequent commit command failed: %v", err)
 	}
 
 	// Test status command
@@ -62,9 +98,9 @@ func TestCLICommandsE2E(t *testing.T) {
 		t.Fatalf("spice-url command failed: %v", err)
 	}
 
-	// Test reset command
+	// Test reset command after commit
 	if err := runReset([]string{"e2e-vm"}); err != nil {
-		t.Fatalf("reset command failed: %v", err)
+		t.Fatalf("reset command failed after commit: %v", err)
 	}
 
 	// Test delete command
@@ -75,4 +111,48 @@ func TestCLICommandsE2E(t *testing.T) {
 
 func TestPrintHelp(t *testing.T) {
 	PrintHelp()
+}
+
+func TestExtractLang(t *testing.T) {
+	cases := []struct {
+		input        []string
+		expectedLang string
+		expectedArgs []string
+	}{
+		{
+			input:        []string{"--lang", "pt", "status", "myvm"},
+			expectedLang: "pt",
+			expectedArgs: []string{"status", "myvm"},
+		},
+		{
+			input:        []string{"--lang=pt", "status"},
+			expectedLang: "pt",
+			expectedArgs: []string{"status"},
+		},
+		{
+			input:        []string{"-lang", "en", "list"},
+			expectedLang: "en",
+			expectedArgs: []string{"list"},
+		},
+		{
+			input:        []string{"-lang=en", "commit", "myvm"},
+			expectedLang: "en",
+			expectedArgs: []string{"commit", "myvm"},
+		},
+		{
+			input:        []string{"status", "myvm"},
+			expectedLang: "",
+			expectedArgs: []string{"status", "myvm"},
+		},
+	}
+
+	for _, tc := range cases {
+		lang, args := extractLang(tc.input)
+		if lang != tc.expectedLang {
+			t.Errorf("extractLang(%v): expected lang %s, got %s", tc.input, tc.expectedLang, lang)
+		}
+		if len(args) != len(tc.expectedArgs) {
+			t.Errorf("extractLang(%v): expected args %v, got %v", tc.input, tc.expectedArgs, args)
+		}
+	}
 }

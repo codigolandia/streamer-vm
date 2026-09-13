@@ -6,15 +6,18 @@ import (
 	"time"
 
 	"streamer-vm/internal"
+	"streamer-vm/internal/i18n"
 	"streamer-vm/vm"
 )
 
 func init() {
 	RegisterCommand(&Command{
-		Name:  "delete",
-		Short: "Delete a virtual machine configuration and disk images",
-		Long:  "Stops the VM if running and permanently deletes its configuration, base disk, overlay disk, state, and logs.",
-		Run:   runDelete,
+		Name:     "delete",
+		ShortKey: "cmd.delete.short",
+		LongKey:  "cmd.delete.long",
+		Short:    "Delete a virtual machine configuration and disk images",
+		Long:     "Stops the VM if running and permanently deletes its configuration, base disk, overlay disk, state, and logs.",
+		Run:      runDelete,
 	})
 }
 
@@ -47,15 +50,14 @@ func runDelete(args []string) error {
 		if !*force {
 			return fmt.Errorf("VM '%s' is currently running; stop it first using 'streamer-vm stop %s' or pass -force", name, name)
 		}
-		internal.Info("Force stopping running VM '%s' before deletion...", name)
 		_ = vm.StopVM(home, cfg, 5*time.Second)
 	}
 
-	internal.Info("Deleting VM '%s'...", name)
+	internal.Info(i18n.T("msg.deleting_vm", name))
 	if err := vm.DeleteVM(home, name, *force); err != nil {
 		return err
 	}
 
-	internal.Success("VM '%s' and associated disk files deleted successfully.", name)
+	internal.Success(i18n.T("msg.vm_deleted", name))
 	return nil
 }

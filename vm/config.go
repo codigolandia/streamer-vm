@@ -50,6 +50,10 @@ func GetOVMFVarsPath(home, name string) string {
 	return filepath.Join(home, "configs", name, "ovf-vars.fd")
 }
 
+func GetBaseOVMFVarsPath(home, name string) string {
+	return filepath.Join(home, "configs", name, "ovf-vars.base.fd")
+}
+
 func GetDisksDir(home string) string {
 	return filepath.Join(home, "disks")
 }
@@ -129,6 +133,13 @@ func LoadVMConfig(home, name string) (*VMConfig, error) {
 // VMExists checks if a VM configuration exists.
 func VMExists(home, name string) bool {
 	path := GetVMConfigPath(home, name)
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// OverlayExists checks if the overlay disk for a VM exists.
+func OverlayExists(home, name string) bool {
+	path := GetOverlayDiskPath(home, name)
 	_, err := os.Stat(path)
 	return err == nil
 }

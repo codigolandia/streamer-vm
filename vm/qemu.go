@@ -26,9 +26,14 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		return nil, fmt.Errorf("OVMF vars file missing for VM '%s' at %s", cfg.Name, ovfVars)
 	}
 
-	overlayDisk := GetOverlayDiskPath(home, cfg.Name)
-	if _, err := os.Stat(overlayDisk); err != nil {
-		return nil, fmt.Errorf("overlay disk missing for VM '%s' at %s", cfg.Name, overlayDisk)
+	diskFile := GetOverlayDiskPath(home, cfg.Name)
+	if _, err := os.Stat(diskFile); err != nil {
+		// Overlay not present; use base disk (initial setup / pre-commit mode)
+		baseDisk := GetBaseDiskPath(home, cfg.Name)
+		if _, err := os.Stat(baseDisk); err != nil {
+			return nil, fmt.Errorf("no disk found for VM '%s' (neither overlay %s nor base %s exists)", cfg.Name, diskFile, baseDisk)
+		}
+		diskFile = baseDisk
 	}
 
 	logFile := GetLogFilePath(home, cfg.Name)
@@ -52,7 +57,7 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 
 		"-device", "virtio-scsi-pci",
 		"-device", "scsi-hd,drive=disk,bootindex=1",
-		"-drive", fmt.Sprintf("id=disk,if=none,file=%s,format=qcow2,cache=none,aio=native", overlayDisk),
+		"-drive", fmt.Sprintf("id=disk,if=none,file=%s,format=qcow2,cache=none,aio=native", diskFile),
 
 		"-device", "virtio-net-pci,netdev=net",
 		"-netdev", "user,id=net",

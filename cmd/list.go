@@ -7,15 +7,18 @@ import (
 	"text/tabwriter"
 
 	"streamer-vm/internal"
+	"streamer-vm/internal/i18n"
 	"streamer-vm/vm"
 )
 
 func init() {
 	RegisterCommand(&Command{
-		Name:  "list",
-		Short: "List all virtual machines",
-		Long:  "Lists all configured virtual machines and their current operational status.",
-		Run:   runList,
+		Name:     "list",
+		ShortKey: "cmd.list.short",
+		LongKey:  "cmd.list.long",
+		Short:    "List all virtual machines",
+		Long:     "Lists all configured virtual machines and their current operational status.",
+		Run:      runList,
 	})
 }
 
@@ -32,19 +35,19 @@ func runList(args []string) error {
 	}
 
 	if len(vms) == 0 {
-		internal.Info("No virtual machines found. Create one with: streamer-vm create <name>")
+		internal.Info(i18n.T("status.no_vms"))
 		return nil
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintln(w, "NAME\tSTATUS\tPID\tSPICE PORT\tCPUS\tRAM (GB)\tDISK (GB)\tCREATED")
+	fmt.Fprintln(w, i18n.T("list.header"))
 
 	for _, cfg := range vms {
 		running := vm.IsVMRunning(home, cfg.Name)
-		statusStr := "STOPPED"
+		statusStr := i18n.T("state.stopped")
 		pidStr := "-"
 		if running {
-			statusStr = "RUNNING"
+			statusStr = i18n.T("state.running")
 			pidStr = fmt.Sprintf("%d", vm.GetVMPID(home, cfg.Name))
 		}
 

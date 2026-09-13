@@ -55,6 +55,27 @@ func TestBuildQEMUArgs(t *testing.T) {
 	if !contains(args, "virtio-gpu-gl-pci") {
 		t.Errorf("Expected virtio-gpu-gl-pci in args")
 	}
+
+	// Test fallback to base disk when overlay is missing
+	_ = os.Remove(overlayDisk)
+	baseDisk := GetBaseDiskPath(tempHome, cfg.Name)
+	_ = os.WriteFile(baseDisk, []byte("dummy-base"), 0644)
+
+	argsBase, err := BuildQEMUArgs(tempHome, cfg)
+	if err != nil {
+		t.Fatalf("BuildQEMUArgs with base disk failed: %v", err)
+	}
+	expectedDrive := "id=disk,if=none,file=" + baseDisk + ",format=qcow2,cache=none,aio=native"
+	if !contains(argsBase, expectedDrive) {
+		t.Errorf("Expected base disk drive in args: %s", expectedDrive)
+	}
+
+	// Test error when neither disk exists
+	_ = os.Remove(baseDisk)
+	_, err = BuildQEMUArgs(tempHome, cfg)
+	if err == nil {
+		t.Fatalf("Expected error when neither disk exists, got nil")
+	}
 }
 
 func contains(slice []string, val string) bool {

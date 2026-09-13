@@ -44,3 +44,33 @@ func TestCopyFile(t *testing.T) {
 		t.Errorf("CopyFile content mismatch: expected %s, got %s", content, dstContent)
 	}
 }
+
+func TestOverlayDiskLifecycle(t *testing.T) {
+	tempDir := t.TempDir()
+	baseDisk := filepath.Join(tempDir, "test-base.qcow2")
+	overlayDisk := filepath.Join(tempDir, "test-overlay.qcow2")
+
+	// Create base
+	if err := CreateBaseDisk(baseDisk, 1); err != nil {
+		t.Skipf("qemu-img create failed (possibly not installed): %v", err)
+	}
+
+	// Create overlay
+	if err := CreateOverlayDisk(baseDisk, overlayDisk); err != nil {
+		t.Fatalf("CreateOverlayDisk failed: %v", err)
+	}
+
+	// Commit overlay
+	if err := CommitOverlayDisk(overlayDisk); err != nil {
+		t.Fatalf("CommitOverlayDisk failed: %v", err)
+	}
+
+	// Remove overlay
+	if err := RemoveOverlayDisk(overlayDisk); err != nil {
+		t.Fatalf("RemoveOverlayDisk failed: %v", err)
+	}
+
+	if _, err := os.Stat(overlayDisk); !os.IsNotExist(err) {
+		t.Errorf("Overlay disk still exists after RemoveOverlayDisk")
+	}
+}
