@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"flag"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"streamer-vm/vm"
 )
 
 func TestCLICommandsE2E(t *testing.T) {
@@ -20,16 +23,29 @@ func TestCLICommandsE2E(t *testing.T) {
 		t.Fatalf("init command failed: %v", err)
 	}
 
-	// Test create command
-	createArgs := []string{"-cpus", "2", "-memory", "4", "-disk", "10", "-spice-port", "5910", "e2e-vm"}
+	// Test create command with positional name first and flags after (including -iso)
+	fakeISO := filepath.Join(tempHome, "test.iso")
+	_ = os.WriteFile(fakeISO, []byte("iso-data"), 0644)
+	createArgs := []string{"e2e-vm", "-cpus", "2", "-memory", "4", "-disk", "10", "-spice-port", "5910", "-iso", fakeISO}
 	if err := runCreate(createArgs); err != nil {
 		t.Fatalf("create command failed: %v", err)
 	}
 
-	// Verify files created
+	// Verify files created and ISO path stored correctly
 	vmConfigPath := filepath.Join(tempHome, "configs", "e2e-vm", "vm.json")
 	if _, err := os.Stat(vmConfigPath); err != nil {
 		t.Fatalf("VM config file missing at %s: %v", vmConfigPath, err)
+	}
+
+	cfg, err := vm.LoadVMConfig(tempHome, "e2e-vm")
+	if err != nil {
+		t.Fatalf("failed to load VM config: %v", err)
+	}
+	if cfg.ISOPath != fakeISO {
+		t.Fatalf("expected ISO path %q, got %q", fakeISO, cfg.ISOPath)
+	}
+	if cfg.CPUs != 2 || cfg.MemoryGB != 4 || cfg.DiskGB != 10 || cfg.SpicePort != 5910 {
+		t.Fatalf("expected config flags to be parsed, got cpus=%d, mem=%d, disk=%d, port=%d", cfg.CPUs, cfg.MemoryGB, cfg.DiskGB, cfg.SpicePort)
 	}
 
 	baseDiskPath := filepath.Join(tempHome, "disks", "e2e-vm.qcow2")
@@ -42,16 +58,14 @@ func TestCLICommandsE2E(t *testing.T) {
 		t.Fatalf("Overlay disk should NOT exist before commit")
 	}
 
-	// Test update command: attach ISO
-	fakeISO := filepath.Join(tempHome, "test.iso")
-	_ = os.WriteFile(fakeISO, []byte("iso-data"), 0644)
-	if err := runUpdate([]string{"-iso", fakeISO, "e2e-vm"}); err != nil {
-		t.Fatalf("update command failed to attach ISO: %v", err)
+	// Test update command: remove ISO with positional name first
+	if err := runUpdate([]string{"e2e-vm", "-remove-iso"}); err != nil {
+		t.Fatalf("update command failed to remove ISO: %v", err)
 	}
 
-	// Test update command: remove ISO
-	if err := runUpdate([]string{"-remove-iso", "e2e-vm"}); err != nil {
-		t.Fatalf("update command failed to remove ISO: %v", err)
+	// Test update command: attach ISO with positional name first
+	if err := runUpdate([]string{"e2e-vm", "-iso", fakeISO}); err != nil {
+		t.Fatalf("update command failed to attach ISO: %v", err)
 	}
 
 	// Test reset before commit (should fail because no overlay exists)
@@ -73,8 +87,8 @@ func TestCLICommandsE2E(t *testing.T) {
 		t.Fatalf("Base OVMF vars missing after commit: %v", err)
 	}
 
-	// Test subsequent commit with -remove-iso
-	if err := runCommit([]string{"-remove-iso", "e2e-vm"}); err != nil {
+	// Test subsequent commit with -remove-iso (positional name first)
+	if err := runCommit([]string{"e2e-vm", "-remove-iso"}); err != nil {
 		t.Fatalf("subsequent commit command failed: %v", err)
 	}
 
@@ -103,8 +117,8 @@ func TestCLICommandsE2E(t *testing.T) {
 		t.Fatalf("reset command failed after commit: %v", err)
 	}
 
-	// Test delete command
-	if err := runDelete([]string{"-force", "e2e-vm"}); err != nil {
+	// Test delete command (positional name first)
+	if err := runDelete([]string{"e2e-vm", "-force"}); err != nil {
 		t.Fatalf("delete command failed: %v", err)
 	}
 }
@@ -154,5 +168,90 @@ func TestExtractLang(t *testing.T) {
 		if len(args) != len(tc.expectedArgs) {
 			t.Errorf("extractLang(%v): expected args %v, got %v", tc.input, tc.expectedArgs, args)
 		}
+	}
+}
+
+func TestParseAll(t *testing.T) {
+	cases := []struct {
+		name         string
+		args         []string
+		expectedPos  []string
+		expectedFlag string
+		expectedNum  int
+		expectedBool bool
+		expectErr    bool
+	}{
+		{
+			name:         "positional first, flags after",
+			args:         []string{"myvm", "-iso", "/tmp/ubuntu.iso", "-cpus", "8", "-force"},
+			expectedPos:  []string{"myvm"},
+			expectedFlag: "/tmp/ubuntu.iso",
+			expectedNum:  8,
+			expectedBool: true,
+		},
+		{
+			name:         "flags first, positional after",
+			args:         []string{"-iso", "/tmp/ubuntu.iso", "-cpus", "8", "-force", "myvm"},
+			expectedPos:  []string{"myvm"},
+			expectedFlag: "/tmp/ubuntu.iso",
+			expectedNum:  8,
+			expectedBool: true,
+		},
+		{
+			name:         "interspersed flags and multiple positional",
+			args:         []string{"pos1", "-iso", "/tmp/test.iso", "pos2", "-cpus", "4", "pos3"},
+			expectedPos:  []string{"pos1", "pos2", "pos3"},
+			expectedFlag: "/tmp/test.iso",
+			expectedNum:  4,
+		},
+		{
+			name:         "terminator --",
+			args:         []string{"pos1", "--", "-not-a-flag", "pos2"},
+			expectedPos:  []string{"pos1", "-not-a-flag", "pos2"},
+			expectedNum:  2,
+		},
+		{
+			name:      "unknown flag returns error",
+			args:      []string{"pos1", "-unknown", "pos2"},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := flag.NewFlagSet("test", flag.ContinueOnError)
+			iso := fs.String("iso", "", "")
+			cpus := fs.Int("cpus", 2, "")
+			force := fs.Bool("force", false, "")
+
+			pos, err := ParseAll(fs, tc.args)
+			if tc.expectErr {
+				if err == nil {
+					t.Fatalf("expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if len(pos) != len(tc.expectedPos) {
+				t.Fatalf("positional length mismatch: expected %v, got %v", tc.expectedPos, pos)
+			}
+			for i := range pos {
+				if pos[i] != tc.expectedPos[i] {
+					t.Errorf("pos[%d]: expected %s, got %s", i, tc.expectedPos[i], pos[i])
+				}
+			}
+			if *iso != tc.expectedFlag {
+				t.Errorf("iso flag: expected %q, got %q", tc.expectedFlag, *iso)
+			}
+			if *cpus != tc.expectedNum {
+				t.Errorf("cpus flag: expected %d, got %d", tc.expectedNum, *cpus)
+			}
+			if *force != tc.expectedBool {
+				t.Errorf("force flag: expected %v, got %v", tc.expectedBool, *force)
+			}
+		})
 	}
 }

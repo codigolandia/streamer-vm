@@ -22,14 +22,15 @@ func init() {
 
 func runStatus(args []string) error {
 	fs := flag.NewFlagSet("status", flag.ContinueOnError)
-	if err := fs.Parse(args); err != nil {
+	positional, err := ParseAll(fs, args)
+	if err != nil {
 		return err
 	}
 
 	home := vm.GetStreamerHome()
 
-	if fs.NArg() == 1 {
-		name := fs.Arg(0)
+	if len(positional) == 1 {
+		name := positional[0]
 		cfg, err := vm.LoadVMConfig(home, name)
 		if err != nil {
 			return err

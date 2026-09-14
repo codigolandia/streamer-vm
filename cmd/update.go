@@ -27,11 +27,12 @@ func runUpdate(args []string) error {
 	isoFlag := fs.String("iso", "", "Path to installation ISO image to attach")
 	removeISO := fs.Bool("remove-iso", false, "Detach/remove installation ISO image from VM")
 
-	if err := fs.Parse(args); err != nil {
+	positional, err := ParseAll(fs, args)
+	if err != nil {
 		return err
 	}
 
-	if fs.NArg() < 1 {
+	if len(positional) < 1 {
 		return fmt.Errorf("VM name argument is required: streamer-vm update <name> [--iso <path> | --remove-iso]")
 	}
 
@@ -39,7 +40,7 @@ func runUpdate(args []string) error {
 		return fmt.Errorf("cannot specify both -iso and -remove-iso")
 	}
 
-	name := fs.Arg(0)
+	name := positional[0]
 	home := vm.GetStreamerHome()
 
 	cfg, err := vm.LoadVMConfig(home, name)

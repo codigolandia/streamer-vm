@@ -26,15 +26,16 @@ func runDelete(args []string) error {
 	force := fs.Bool("force", false, "Force deletion of running VM")
 	fs.BoolVar(force, "f", false, "Force deletion of running VM (shorthand)")
 
-	if err := fs.Parse(args); err != nil {
+	positional, err := ParseAll(fs, args)
+	if err != nil {
 		return err
 	}
 
-	if fs.NArg() < 1 {
+	if len(positional) < 1 {
 		return fmt.Errorf("VM name argument is required: streamer-vm delete <name>")
 	}
 
-	name := fs.Arg(0)
+	name := positional[0]
 	home := vm.GetStreamerHome()
 
 	if !vm.VMExists(home, name) {

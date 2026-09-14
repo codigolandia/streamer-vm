@@ -33,13 +33,14 @@ func runCreate(args []string) error {
 	spicePort := fs.Int("spice-port", 0, "Spice port (default: auto 5900-5999)")
 	nameFlag := fs.String("name", "", "VM name")
 
-	if err := fs.Parse(args); err != nil {
+	positional, err := ParseAll(fs, args)
+	if err != nil {
 		return err
 	}
 
 	name := *nameFlag
-	if fs.NArg() > 0 && fs.Arg(0) != "" {
-		name = fs.Arg(0)
+	if len(positional) > 0 && positional[0] != "" {
+		name = positional[0]
 	}
 	if name == "" {
 		return fmt.Errorf("VM name is required (pass as argument or via -name)")

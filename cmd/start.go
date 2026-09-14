@@ -27,11 +27,12 @@ func runStart(args []string) error {
 	fs := flag.NewFlagSet("start", flag.ContinueOnError)
 	isoFlag := fs.String("iso", "", "Path to guest OS installation ISO image")
 	removeISO := fs.Bool("remove-iso", false, "Remove installation ISO image before starting")
-	if err := fs.Parse(args); err != nil {
+	positional, err := ParseAll(fs, args)
+	if err != nil {
 		return err
 	}
 
-	if fs.NArg() < 1 {
+	if len(positional) < 1 {
 		return fmt.Errorf("VM name argument is required: streamer-vm start <name> [-iso <path>] [-remove-iso]")
 	}
 
@@ -39,7 +40,7 @@ func runStart(args []string) error {
 		return fmt.Errorf("cannot specify both -iso and -remove-iso")
 	}
 
-	name := fs.Arg(0)
+	name := positional[0]
 	home := vm.GetStreamerHome()
 
 	cfg, err := vm.LoadVMConfig(home, name)

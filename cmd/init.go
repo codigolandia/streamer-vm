@@ -22,7 +22,7 @@ func init() {
 
 func runInit(args []string) error {
 	fs := flag.NewFlagSet("init", flag.ContinueOnError)
-	if err := fs.Parse(args); err != nil {
+	if _, err := ParseAll(fs, args); err != nil {
 		return err
 	}
 

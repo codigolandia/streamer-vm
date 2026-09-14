@@ -25,15 +25,16 @@ func init() {
 func runCommit(args []string) error {
 	fs := flag.NewFlagSet("commit", flag.ContinueOnError)
 	removeISO := fs.Bool("remove-iso", false, "Remove installation ISO from VM configuration")
-	if err := fs.Parse(args); err != nil {
+	positional, err := ParseAll(fs, args)
+	if err != nil {
 		return err
 	}
 
-	if fs.NArg() < 1 {
+	if len(positional) < 1 {
 		return fmt.Errorf("VM name argument is required: streamer-vm commit <name> [--remove-iso]")
 	}
 
-	name := fs.Arg(0)
+	name := positional[0]
 	home := vm.GetStreamerHome()
 
 	cfg, err := vm.LoadVMConfig(home, name)

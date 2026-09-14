@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -38,6 +39,34 @@ var commands = map[string]*Command{}
 // RegisterCommand registers a new subcommand.
 func RegisterCommand(cmd *Command) {
 	commands[cmd.Name] = cmd
+}
+
+// ParseAll parses all arguments provided with the given FlagSet,
+// allowing flags to be placed anywhere (before, interspersed, or after positional arguments).
+// It returns the remaining positional arguments in the order they were provided.
+func ParseAll(fs *flag.FlagSet, args []string) ([]string, error) {
+	var positional []string
+
+	for len(args) > 0 {
+		if args[0] == "--" {
+			positional = append(positional, args[1:]...)
+			break
+		}
+
+		if err := fs.Parse(args); err != nil {
+			return nil, err
+		}
+
+		rem := fs.Args()
+		if len(rem) == 0 {
+			break
+		}
+
+		positional = append(positional, rem[0])
+		args = rem[1:]
+	}
+
+	return positional, nil
 }
 
 // extractLang filters out --lang / -lang options from CLI arguments.
