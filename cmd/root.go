@@ -104,6 +104,9 @@ func Execute() {
 	}
 
 	subCmd := args[0]
+	if subCmd == "-v" || subCmd == "--version" {
+		subCmd = "version"
+	}
 	if subCmd == "help" || subCmd == "-h" || subCmd == "--help" {
 		if len(args) > 1 {
 			if cmd, ok := commands[args[1]]; ok {
@@ -203,6 +206,7 @@ func PrintHelp() {
 
 	fmt.Println()
 	fmt.Println(i18n.T("cli.flags"))
-	fmt.Printf("  -h, --help   %s\n", i18n.T("cli.flags_help"))
-	fmt.Printf("  --lang       %s\n", i18n.T("cli.flags_lang"))
+	fmt.Printf("  -h, --help    %s\n", i18n.T("cli.flags_help"))
+	fmt.Printf("  -v, --version %s\n", i18n.T("cli.flags_version"))
+	fmt.Printf("  --lang        %s\n", i18n.T("cli.flags_lang"))
 }

@@ -17,10 +17,12 @@
   "cli.group.other": "Other Commands:",
   "cli.flags": "Flags:",
   "cli.flags_help": "Show help information (run 'streamer-vm help <command>' for details)",
+  "cli.flags_version": "Show version and build information",
   "cli.flags_lang": "Set interface language ('en' or 'pt')",
   "cli.unknown_command": "Unknown command: %s\nRun 'streamer-vm help' for usage.\n",
   "cli.usage_of": "Usage of streamer-vm %s:\n\n%s\n\n",
 
+  "cmd.version.short": "Show streamer-vm version and build information",
   "cmd.init.short": "Initialize streamer-vm environment and verify host prerequisites",
   "cmd.init.long": "Creates required directory structure under STREAMER_HOME and verifies host prerequisites (KVM, GPU DRM, QEMU, OVMF firmware).",
   "cmd.create.short": "Create a new virtual machine configuration and disk images",

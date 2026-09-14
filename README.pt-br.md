@@ -23,6 +23,22 @@ No host Linux:
 
 ## Instalação
 
+### Instalação Rápida / Atualização
+
+Instale ou atualize para a versão mais recente em `~/.local/bin` ou `~/bin` (o que estiver primeiro no seu `$PATH`):
+
+```bash
+curl -fsSL https://github.com/codigolandia/streamer-vm/releases/latest/download/install.sh | bash
+```
+
+Para fazer rollback para a versão anterior (restaurando `streamer-vm.backup`):
+
+```bash
+curl -fsSL https://github.com/codigolandia/streamer-vm/releases/latest/download/install.sh | bash -s -- --rollback
+```
+
+### Download Manual ou Compilação pelo Código-Fonte
+
 Baixe o binário pré-compilado para Linux (amd64 / arm64) das [Releases](https://github.com/codigolandia/streamer-vm/releases) ou compile a partir do código fonte:
 
 ```bash

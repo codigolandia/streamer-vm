@@ -297,3 +297,19 @@ func TestLaunchSpicy(t *testing.T) {
 		}
 	})
 }
+
+func TestVersionCommand(t *testing.T) {
+	SetVersionInfo("0.5.0", "abc1234", "2026-09-14")
+	if Version != "0.5.0" || Commit != "abc1234" || Date != "2026-09-14" {
+		t.Fatalf("expected version metadata to be set, got %s, %s, %s", Version, Commit, Date)
+	}
+
+	cmd, ok := commands["version"]
+	if !ok {
+		t.Fatalf("expected version command to be registered")
+	}
+
+	if err := cmd.Run([]string{}); err != nil {
+		t.Fatalf("version command failed: %v", err)
+	}
+}
