@@ -133,5 +133,8 @@
   "msg.iso_updated": "Imagem ISO da VM '%s' atualizada para %s",
   "msg.iso_removed": "Imagem ISO removida da VM '%s'",
   "msg.no_iso": "VM '%s' já não possui nenhuma ISO anexada",
-  "msg.vm_updated": "VM '%s' atualizada com sucesso."
+  "msg.vm_updated": "VM '%s' atualizada com sucesso.",
+  "msg.launching_spicy": "Iniciando cliente SPICE (spicy)...",
+  "msg.spicy_not_found": "Cliente SPICE 'spicy' não encontrado no PATH. Instale spice-client-gtk ou conecte manualmente: %s",
+  "msg.spicy_failed": "Falha ao iniciar cliente SPICE: %v"
 }

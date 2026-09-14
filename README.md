@@ -10,7 +10,7 @@
 - **Zero External Dependencies**: Standalone single binary compiled in Pure Go using only the standard library.
 - **Internationalization (i18n)**: Native English (`en`) and Portuguese (`pt`) language support with automatic locale detection or via the `--lang` flag.
 - **Qcow2 Overlay Isolation**: Keeps the base disk image intact and uses writable COW overlays for easy and instantaneous `reset`.
-- **SPICE Protocol**: Low-latency display, Pipewire audio passthrough, and bidirectional clipboard sharing (`vdagent`).
+- **SPICE Protocol**: Low-latency display, Pipewire audio passthrough, bidirectional clipboard sharing (`vdagent`), and USB device redirection (XHCI).
 - **Tailored for Linux**: Optimized exclusively for Linux desktop systems with Wayland/X11 and QEMU/KVM.
 
 ## Prerequisites
@@ -38,8 +38,8 @@ streamer-vm init
 # 2. Create a new VM with an installation ISO (initial setup mode, writing directly to base disk)
 streamer-vm create ubuntu-live -cpus 4 -memory 8 -disk 50 -iso ~/Downloads/ubuntu-24.04.iso
 
-# 3. Start VM to install the guest OS via SPICE display client
-streamer-vm start ubuntu-live
+# 3. Start VM and automatically launch SPICE client GUI (spicy)
+streamer-vm start ubuntu-live --gui
 
 # 4. View SPICE connection URL (if using spicy or virt-viewer separately)
 streamer-vm spice-url ubuntu-live

@@ -255,3 +255,45 @@ func TestParseAll(t *testing.T) {
 		})
 	}
 }
+
+func TestLaunchSpicy(t *testing.T) {
+	origLookPath := lookPathFunc
+	origStartCmd := startCmdFunc
+	defer func() {
+		lookPathFunc = origLookPath
+		startCmdFunc = origStartCmd
+	}()
+
+	t.Run("spicy not found does not panic or fail", func(t *testing.T) {
+		lookPathFunc = func(file string) (string, error) {
+			return "", os.ErrNotExist
+		}
+		launchSpicy("myvm", "spice+unix:///path.sock")
+	})
+
+	t.Run("spicy found launches with correct arguments", func(t *testing.T) {
+		var capturedCmd *exec.Cmd
+		lookPathFunc = func(file string) (string, error) {
+			return "/usr/bin/spicy", nil
+		}
+		startCmdFunc = func(cmd *exec.Cmd) error {
+			capturedCmd = cmd
+			return nil
+		}
+
+		launchSpicy("myvm", "spice+unix:///path.sock")
+
+		if capturedCmd == nil {
+			t.Fatalf("expected command to be started")
+		}
+		expectedArgs := []string{"/usr/bin/spicy", "--uri=spice+unix:///path.sock", "--title=myvm"}
+		if len(capturedCmd.Args) != len(expectedArgs) {
+			t.Fatalf("expected args %v, got %v", expectedArgs, capturedCmd.Args)
+		}
+		for i := range expectedArgs {
+			if capturedCmd.Args[i] != expectedArgs[i] {
+				t.Errorf("arg[%d]: expected %s, got %s", i, expectedArgs[i], capturedCmd.Args[i])
+			}
+		}
+	})
+}

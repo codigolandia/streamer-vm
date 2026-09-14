@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"streamer-vm/internal"
@@ -12,13 +14,35 @@ import (
 	"streamer-vm/vm"
 )
 
+var (
+	lookPathFunc = exec.LookPath
+	startCmdFunc = func(cmd *exec.Cmd) error {
+		return cmd.Start()
+	}
+)
+
+func launchSpicy(name, spiceURL string) {
+	path, err := lookPathFunc("spicy")
+	if err != nil {
+		internal.Warn(i18n.T("msg.spicy_not_found", spiceURL))
+		return
+	}
+
+	internal.Info(i18n.T("msg.launching_spicy"))
+	cmd := exec.Command(path, fmt.Sprintf("--uri=%s", spiceURL), fmt.Sprintf("--title=%s", name))
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	if err := startCmdFunc(cmd); err != nil {
+		internal.Warn(i18n.T("msg.spicy_failed", err))
+	}
+}
+
 func init() {
 	RegisterCommand(&Command{
 		Name:     "start",
 		ShortKey: "cmd.start.short",
 		LongKey:  "cmd.start.long",
 		Short:    "Start a virtual machine",
-		Long:     "Launches QEMU in background daemon mode and waits for the SPICE display server to be ready.",
+		Long:     "Launches QEMU in background daemon mode and waits for the SPICE display server to be ready. Optionally opens SPICE client with --gui.",
 		Run:      runStart,
 	})
 }
@@ -27,13 +51,16 @@ func runStart(args []string) error {
 	fs := flag.NewFlagSet("start", flag.ContinueOnError)
 	isoFlag := fs.String("iso", "", "Path to guest OS installation ISO image")
 	removeISO := fs.Bool("remove-iso", false, "Remove installation ISO image before starting")
+	gui := fs.Bool("gui", false, "Launch SPICE client GUI (spicy) after starting")
+	fs.BoolVar(gui, "g", false, "Launch SPICE client GUI (spicy) after starting (shorthand)")
+
 	positional, err := ParseAll(fs, args)
 	if err != nil {
 		return err
 	}
 
 	if len(positional) < 1 {
-		return fmt.Errorf("VM name argument is required: streamer-vm start <name> [-iso <path>] [-remove-iso]")
+		return fmt.Errorf("VM name argument is required: streamer-vm start <name> [--gui] [-iso <path>] [-remove-iso]")
 	}
 
 	if *removeISO && *isoFlag != "" {
@@ -70,6 +97,9 @@ func runStart(args []string) error {
 		pid := vm.GetVMPID(home, name)
 		internal.Info(i18n.T("msg.already_running", name, pid))
 		internal.Info(i18n.T("msg.spice_url", spiceURL))
+		if *gui {
+			launchSpicy(name, spiceURL)
+		}
 		return nil
 	}
 
@@ -83,6 +113,9 @@ func runStart(args []string) error {
 		internal.Success(i18n.T("msg.started_success", name))
 		internal.Success(i18n.T("msg.spice_url", spiceURL))
 		internal.Info(i18n.T("msg.connect_hint", spiceURL))
+		if *gui {
+			launchSpicy(name, spiceURL)
+		}
 	} else {
 		pid := vm.GetVMPID(home, name)
 		internal.Warn(i18n.T("msg.spice_timeout", pid))

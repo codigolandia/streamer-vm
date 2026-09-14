@@ -70,6 +70,17 @@ func BuildQEMUArgs(home string, cfg *VMConfig) ([]string, error) {
 		"-chardev", "spicevmc,id=vdagent,name=vdagent",
 		"-device", "virtserialport,chardev=vdagent,name=com.redhat.spice.0",
 
+		"-device", "virtio-tablet-pci",
+		"-device", "virtio-keyboard-pci",
+
+		"-device", "qemu-xhci,id=xhci",
+		"-chardev", "spicevmc,id=usbredirchardev1,name=usbredir",
+		"-device", "usb-redir,chardev=usbredirchardev1,id=usbredirdev1",
+		"-chardev", "spicevmc,id=usbredirchardev2,name=usbredir",
+		"-device", "usb-redir,chardev=usbredirchardev2,id=usbredirdev2",
+		"-chardev", "spicevmc,id=usbredirchardev3,name=usbredir",
+		"-device", "usb-redir,chardev=usbredirchardev3,id=usbredirdev3",
+
 		"-monitor", fmt.Sprintf("unix:%s,server,nowait", monitorSock),
 		"-pidfile", pidFile,
 

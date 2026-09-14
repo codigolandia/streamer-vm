@@ -55,6 +55,18 @@ func TestBuildQEMUArgs(t *testing.T) {
 	if !contains(args, "virtio-gpu-gl-pci") {
 		t.Errorf("Expected virtio-gpu-gl-pci in args")
 	}
+	if !contains(args, "virtio-tablet-pci") {
+		t.Errorf("Expected virtio-tablet-pci in args")
+	}
+	if !contains(args, "virtio-keyboard-pci") {
+		t.Errorf("Expected virtio-keyboard-pci in args")
+	}
+	if !contains(args, "qemu-xhci,id=xhci") {
+		t.Errorf("Expected qemu-xhci in args")
+	}
+	if !contains(args, "usb-redir,chardev=usbredirchardev1,id=usbredirdev1") {
+		t.Errorf("Expected usbredir dev 1 in args")
+	}
 
 	// Test fallback to base disk when overlay is missing
 	_ = os.Remove(overlayDisk)

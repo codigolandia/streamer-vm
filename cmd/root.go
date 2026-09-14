@@ -161,7 +161,7 @@ func PrintHelp() {
 	fmt.Printf("     %s\n", i18n.T("cli.workflow.step1"))
 	fmt.Println("  2. streamer-vm create <name> -iso <path>")
 	fmt.Printf("     %s\n", i18n.T("cli.workflow.step2"))
-	fmt.Println("  3. streamer-vm start <name>")
+	fmt.Println("  3. streamer-vm start <name> [--gui]")
 	fmt.Printf("     %s\n", i18n.T("cli.workflow.step3"))
 	fmt.Println("  4. streamer-vm stop <name>")
 	fmt.Printf("     %s\n", i18n.T("cli.workflow.step4"))
